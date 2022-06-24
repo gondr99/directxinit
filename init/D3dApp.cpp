@@ -122,35 +122,17 @@ bool D3DApp::Initialize()
 	return true;
 }
 
-void D3DApp::CreateRtvAndDsvDescriptorHeaps()
-{
-	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
-	rtvHeapDesc.NumDescriptors = SwapChainBufferCount;
-	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	rtvHeapDesc.NodeMask = 0;
-	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(
-		&rtvHeapDesc, IID_PPV_ARGS(mRtvHeap.GetAddressOf())));
-
-
-	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
-	dsvHeapDesc.NumDescriptors = 1;
-	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	dsvHeapDesc.NodeMask = 0;
-	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(
-		&dsvHeapDesc, IID_PPV_ARGS(mDsvHeap.GetAddressOf())));
-}
-
 void D3DApp::OnResize()
 {
 	assert(md3dDevice);
 	assert(mSwapChain);
 	assert(mDirectCmdListAlloc);
+	//위의 3가지중 하나라도 안되었으면 정지
 
-	// Flush before changing any resources.
+	//커맨드 큐 비우기
 	FlushCommandQueue();
 
+	//커맨드큐를 리셋, 파이프라인은 없으니 nullptr
 	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
 	// Release the previous resources we will be recreating.
@@ -170,20 +152,23 @@ void D3DApp::OnResize()
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(mRtvHeap->GetCPUDescriptorHandleForHeapStart());
 	for (UINT i = 0; i < SwapChainBufferCount; i++)
 	{
+		//스왑체인의 i번째 버퍼를 얻는다. 
 		ThrowIfFailed(mSwapChain->GetBuffer(i, IID_PPV_ARGS(&mSwapChainBuffer[i])));
+		//해당 버퍼에 대한 RTV를 생성한다.
 		md3dDevice->CreateRenderTargetView(mSwapChainBuffer[i].Get(), nullptr, rtvHeapHandle);
+		//힙의 다음 항목으로 넘어간다.
 		rtvHeapHandle.Offset(1, mRtvDescriptorSize);
 	}
 
-	// Create the depth/stencil buffer and view.
+	// 깊이/스텐실 버퍼 디스크립터 생성
 	D3D12_RESOURCE_DESC depthStencilDesc;
-	depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;  //unkown, buffer, texture1d, 2d, 3d 
 	depthStencilDesc.Alignment = 0;
-	depthStencilDesc.Width = mClientWidth;
-	depthStencilDesc.Height = mClientHeight;
-	depthStencilDesc.DepthOrArraySize = 1;
-	depthStencilDesc.MipLevels = 1;
-	depthStencilDesc.Format = mDepthStencilFormat;
+	depthStencilDesc.Width = mClientWidth;				//텍스쳐 너비
+	depthStencilDesc.Height = mClientHeight;			//텍스쳐 높이
+	depthStencilDesc.DepthOrArraySize = 1;				//3차원 텍스처의 깊이, 1차원 및 2차원 텍스처 배열 크기
+	depthStencilDesc.MipLevels = 1;						//밉맵 수준 갯수
+	depthStencilDesc.Format = mDepthStencilFormat;		//D24_UNORM_S8_UINT
 	depthStencilDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
 	depthStencilDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
 	depthStencilDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -201,19 +186,19 @@ void D3DApp::OnResize()
 		&optClear,
 		IID_PPV_ARGS(mDepthStencilBuffer.GetAddressOf())));
 
-	// Create descriptor to mip level 0 of entire resource using the format of the resource.
+	// 전체 자원이 밉맵 수준 0에 대한 서술자를 해당 자원의 픽셀 형식을 적용해서 생성한다.
 	md3dDevice->CreateDepthStencilView(mDepthStencilBuffer.Get(), nullptr, DepthStencilView());
 
-	// Transition the resource from its initial state to be used as a depth buffer.
+	// 스텐실버퍼 자원을 초기 상태 사용할 수 있는 상태로 전이한다. 전이시 다른 것이 못건드리게 배리어를 사용한다.
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilBuffer.Get(),
 		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 
-	// Execute the resize commands.
+	//커맨드리스트 자원을 실행함.
 	ThrowIfFailed(mCommandList->Close());
 	ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
-	// Wait until resize is complete.
+	// Resize커맨드가 작동이 끝날때까지 대기
 	FlushCommandQueue();
 
 	// Update the viewport transform to cover the client area.
@@ -224,7 +209,7 @@ void D3DApp::OnResize()
 	mScreenViewport.MinDepth = 0.0f;
 	mScreenViewport.MaxDepth = 1.0f;
 
-	mScissorRect = { 0, 0, mClientWidth, mClientHeight };
+	mScissorRect = { 0, 0, mClientWidth, mClientHeight }; //시저렉트는 이 밖에 있는 녀석들을 래스터라이즈 하지 않도록 한다.(최적화)
 }
 
 LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -489,6 +474,7 @@ void D3DApp::CreateCommandObjects()
 	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
 	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+	//mCommandQueue에 디바이스로부터 커맨드 큐를 받아서 설정한다.
 	ThrowIfFailed(md3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&mCommandQueue)));
 
 	ThrowIfFailed(md3dDevice->CreateCommandAllocator(
@@ -499,21 +485,25 @@ void D3DApp::CreateCommandObjects()
 		0,
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
 		mDirectCmdListAlloc.Get(), // Associated command allocator
-		nullptr,                   // Initial PipelineStateObject
+		nullptr,                   // Initial PipelineStateObject , 아무것도 그릴게 없으니 초기 파이프라인은 널로 설정
 		IID_PPV_ARGS(mCommandList.GetAddressOf())));
 
-	// Start off in a closed state.  This is because the first time we refer 
-	// to the command list we will Reset it, and it needs to be closed before
-	// calling Reset.
+	// 닫힌 상태로 시작한다. 이후 명령 목록을 처음 참조할 때 Reset을 하게 되는데
+	// 	리셋하기 위해서는 반드시 closed 상태여야 하기 때문이다.
+	
 	mCommandList->Close();
 }
 
+//교환사슬 생성
 void D3DApp::CreateSwapChain()
 {
 	// Release the previous swapchain we will be recreating.
 	mSwapChain.Reset();
 
+	//스왑체인 디스크립터 구조체에 필요한 정보들을 할당한다.
 	DXGI_SWAP_CHAIN_DESC sd;
+	//BufferDesc 후면 퍼버 속성들 설정
+	// 너비, 높이, 포맷(R8G8B8A8_UNORM)
 	sd.BufferDesc.Width = mClientWidth;
 	sd.BufferDesc.Height = mClientHeight;
 	sd.BufferDesc.RefreshRate.Numerator = 60;
@@ -521,20 +511,49 @@ void D3DApp::CreateSwapChain()
 	sd.BufferDesc.Format = mBackBufferFormat;
 	sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	sd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+	//다중 표본화 개수와 품질 수준을 서술하는 구조체, 단일 표본화를 하려면 품질 수준을 0, 개수를 1로 설정하면 됨.
 	sd.SampleDesc.Count = m4xMsaaState ? 4 : 1;
 	sd.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
+	//후면 버퍼에 렌더링 할것이니 렌더타겟 아우풋을 지정하여 사용용도를 정한다.
 	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	//후면퍼버의 갯수를 지정(2)
 	sd.BufferCount = SwapChainBufferCount;
 	sd.OutputWindow = mhMainWnd;
 	sd.Windowed = true;
+	//퍼버를 스왑할때 할 행동을 지정하는 것.
 	sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+	//전체화면 전환시 창의 현재크기에 잘맞는 해상도로 전환, 없을경우 데스크탑 기본 해상도로
 	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
-	// Note: Swap chain uses queue to perform flush.
+	// 스왑체인은 커맨드큐를 이용해서 flush를 수행하게 된다. 따라서 커맨드큐를 디바이스로 받는다.
 	ThrowIfFailed(mdxgiFactory->CreateSwapChain(
 		mCommandQueue.Get(),
 		&sd,
 		mSwapChain.GetAddressOf()));
+}
+
+//CreateDescriptorHeap 을 이용해서 서술자 힙을 만든다.
+void D3DApp::CreateRtvAndDsvDescriptorHeaps()
+{
+	//스왑체인에서 사용하는 RTV 의 서술자 힙
+
+	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
+	rtvHeapDesc.NumDescriptors = SwapChainBufferCount; //스왑체인의 등록된 백퍼버 갯수만큼 생성
+	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	rtvHeapDesc.NodeMask = 0;
+	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(
+		&rtvHeapDesc, IID_PPV_ARGS(mRtvHeap.GetAddressOf())));
+
+
+	//깊이 스텐실 버퍼의 서술자 힙
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
+	dsvHeapDesc.NumDescriptors = 1;
+	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	dsvHeapDesc.NodeMask = 0;
+	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(
+		&dsvHeapDesc, IID_PPV_ARGS(mDsvHeap.GetAddressOf())));
 }
 
 //펜스를 이용해서 CPU가 GPU가 커맨드 큐를 다 비울 때까지 기다린다.
@@ -566,11 +585,15 @@ void D3DApp::FlushCommandQueue()
 
 ID3D12Resource* D3DApp::CurrentBackBuffer()const
 {
+	//스왑체인 버퍼에서 현재 백퍼를 리턴
 	return mSwapChainBuffer[mCurrBackBuffer].Get();
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE D3DApp::CurrentBackBufferView()const
 {
+	//뷰 == 디스크립터 
+	//디스크립터힙에서 디스크립터만 뽑아오는거
+	//화면 디스크립터는 디스크립터의 사이즈를 알아야하기 때문에 mRtvDescriptorSize에 저장해둔 것이다.
 	return CD3DX12_CPU_DESCRIPTOR_HANDLE(
 		mRtvHeap->GetCPUDescriptorHandleForHeapStart(),
 		mCurrBackBuffer,

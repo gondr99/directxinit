@@ -19,11 +19,11 @@ public:
 	void Tick();  // Call every frame.
 
 private:
-	double mSecondsPerCount;
-	double mDeltaTime;
+	double mSecondsPerCount; //1틱에 몇초인가?
+	double mDeltaTime; // 이전프레임과 현재 프레임간의 시간
 
 	__int64 mBaseTime;
-	__int64 mPausedTime;
+	__int64 mPausedTime;  //일시 정지되었을 동안 누적된 시간을 저장하는 곳
 	__int64 mStopTime;
 	__int64 mPrevTime;
 	__int64 mCurrTime;
