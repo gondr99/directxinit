@@ -1,6 +1,6 @@
 #pragma once
 
-#include "D3dApp.h"
+#include "../Common/D3dApp.h"
 
 using namespace DirectX;
 
