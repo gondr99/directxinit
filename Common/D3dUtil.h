@@ -65,17 +65,8 @@ public:
 
 	static UINT CalcConstantBufferByteSize(UINT byteSize)
 	{
-		// Constant buffers must be a multiple of the minimum hardware
-		// allocation size (usually 256 bytes).  So round up to nearest
-		// multiple of 256.  We do this by adding 255 and then masking off
-		// the lower 2 bytes which store all bits < 256.
-		// Example: Suppose byteSize = 300.
-		// (300 + 255) & ~255
-		// 555 & ~255
-		// 0x022B & ~0x00ff
-		// 0x022B & 0xff00
-		// 0x0200
-		// 512
+		// 상수버퍼의 크기는 반드시 최소 하드웨어 할당 크기(256byte) 의 배수여야 만 한다.
+		// 그래서 가장 가까운 256의 배수로 라운드업을 수행한다. 255를 더한뒤 마스킹하여 처리한다.
 		return (byteSize + 255) & ~255;
 	}
 
