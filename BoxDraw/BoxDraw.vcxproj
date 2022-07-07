@@ -87,7 +87,9 @@
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
+      <ConformanceMode>Default</ConformanceMode>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -155,6 +157,7 @@
   <ItemGroup>
     <ClInclude Include="..\Common\D3dApp.h" />
     <ClInclude Include="..\Common\D3dUtil.h" />
+    <ClInclude Include="..\Common\GameTimer.h" />
     <ClInclude Include="..\Common\MathHelper.h" />
     <ClInclude Include="BoxApp.h" />
     <ClInclude Include="UploadBuffer.h" />
@@ -162,6 +165,7 @@
   <ItemGroup>
     <ClCompile Include="..\Common\D3dApp.cpp" />
     <ClCompile Include="..\Common\D3dUtil.cpp" />
+    <ClCompile Include="..\Common\GameTimer.cpp" />
     <ClCompile Include="..\Common\MathHelper.cpp" />
     <ClCompile Include="BoxApp.cpp" />
     <ClCompile Include="UploadBuffer.cpp" />

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../Common/D3dApp.h"
-#include "../Common/MathHelper.h"
 #include "UploadBuffer.h"
 
 using Microsoft::WRL::ComPtr;
@@ -39,7 +38,7 @@ private:
 	virtual void OnMouseMove(WPARAM btnState, int x, int y) override;
 
 	void BuildDescriptorHeap();
-	void BuildConstantBuffer();
+	void BuildConstantBuffers();
 	void BuildRootSignature();
 	void BuildShaderAndInputLayout();
 	void BuildBoxGeometry();
@@ -64,8 +63,8 @@ private:
 	XMFLOAT4X4 mView = MathHelper::Identity4x4();
 	XMFLOAT4X4 mProj = MathHelper::Identity4x4();
 
-	float mTheta = 1.5f * XM_PI;
-	float mPhi = XM_PIDIV4;  //45µµ
+	float mTheta = 0;  //xÁÂÇ¥ , 1.5f * XM_PI
+	float mPhi = XM_PIDIV4;  //45µµ   , y
 	float mRadius = 5.0f;
 
 	POINT mLastMousePos;

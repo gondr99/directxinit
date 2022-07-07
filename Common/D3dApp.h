@@ -97,9 +97,9 @@ protected:
 	ComPtr<ID3D12Fence> mFence;  //CPU, GPU간의 펜스
 	UINT64 mCurrentFence = 0;
 
-	ComPtr<ID3D12CommandQueue> mCommandQueue;
+	ComPtr<ID3D12CommandQueue> mCommandQueue; //명령 대기열
 	ComPtr<ID3D12CommandAllocator> mDirectCmdListAlloc;
-	ComPtr<ID3D12GraphicsCommandList> mCommandList;
+	ComPtr<ID3D12GraphicsCommandList> mCommandList; //명령 목록
 
 	static const int SwapChainBufferCount = 2;
 	int mCurrBackBuffer = 0;
